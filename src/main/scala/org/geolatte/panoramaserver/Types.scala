@@ -20,7 +20,14 @@ package object Types {
    * A type for fractional Pixels
    *
    */
-  sealed case class FractPixel(row: Float, col: Float)
+  sealed case class FractPixel(row: Float, col: Float) {
+    def -(other: FractPixel) : FractPixel = FractPixel(this.row - other.row, this.col - other.col)
+    def +(other: FractPixel) : FractPixel = FractPixel(this.row + other.row, this.col + other.col)
+    def *(scale: Float) : FractPixel = FractPixel(row*scale, col*scale)
+    def /(scale: Float) : FractPixel = FractPixel(row/scale, col/scale)
+    def toPixel : Pixel = Pixel(row.toInt, col.toInt)
+  }
+
 
   /**
    * a Pixel refers to a single raster cell by row (first component) and column (second component).
@@ -28,7 +35,13 @@ package object Types {
    * <p>Spatially, {@code Pixels} correspond to the centers of the raster cells </p>
    *
    */
-  sealed case class Pixel(row: Int, col: Int)
+  sealed case class Pixel(row: Int, col: Int) {
+    def -(other: Pixel) : Pixel = Pixel(this.row - other.row, this.col - other.col)
+    def + (other: Pixel) :Pixel = Pixel(this.row + other.row, this.col + other.col)
+    def *(scale: Int) : Pixel = Pixel(row*scale, col*scale)
+    def /(scale: Int) : Pixel = Pixel(row/scale, col/scale)
+    def toFractPixel : FractPixel = FractPixel(row.toInt, col.toInt)
+  }
 
   /**
    * A viewing angle

@@ -35,4 +35,8 @@ class TypesTestSuite extends FunSuite {
   }
 
 
+  test("Dimension correctly calculates its center") {
+    assert( FractPixel(2.0f, 4.0f) === Dimension(9, 5).center)
+  }
+
 }

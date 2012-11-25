@@ -17,7 +17,7 @@ trait Interpolator {
 
 class NearestNeighbor extends Interpolator {
 
-  def toIntPixel(inp: FractPixel) = Pixel(round(inp.row), round(inp.col))
+  def toIntPixel(inp: FractPixel): Pixel = Pixel(round(inp.row), round(inp.col))
 
   def apply[T <: Datum](pixel: FractPixel, raster: Raster[T]) =
     raster(toIntPixel(pixel))
