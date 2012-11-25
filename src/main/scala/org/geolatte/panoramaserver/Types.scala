@@ -10,10 +10,17 @@ import scala.math._
 package object Types {
 
   /**
+   * Dimension (width and height) of an Image with top-left coordinates: (0,0)
+   */
+  case class Dimension(val width: Int, val height: Int) {
+    def center: FractPixel = FractPixel( (height - 1) / 2, (width -1) / 2 )
+  }
+
+  /**
    * A type for fractional Pixels
    *
    */
-  sealed case class FractPixel(row: Float, col: Float);
+  sealed case class FractPixel(row: Float, col: Float)
 
   /**
    * a Pixel refers to a single raster cell by row (first component) and column (second component).
@@ -25,8 +32,8 @@ package object Types {
 
   /**
    * A viewing angle
-   * @param h the horizontal angle (will be normalized to within in the range 0 - 2*Pi)
-   * @param v the vertical angle (will be normalized to within in the range 0 - Pi)
+   * @param h the horizontal angle (will be normalized to within in the range [-Pi, Pi])
+   * @param v the vertical angle (will be normalized to within in the range [0 , Pi])
    */
   sealed case class ViewingAngle(private var h: Double, private var v: Double) {
     private def wrapHorizontal(v: Double) = {
