@@ -12,33 +12,41 @@ import scala.math._
 import Types._
 
 trait Interpolator {
-  def apply[T <: Datum](pixel: FractPixel, raster: Raster[T]): Datum
+  def apply(pixel: FractPixel, raster: Raster): Datum
 }
 
-class NearestNeighbor extends Interpolator {
 
-  def toIntPixel(inp: FractPixel): Pixel = Pixel(round(inp.row), round(inp.col))
-
-  def apply[T <: Datum](pixel: FractPixel, raster: Raster[T]) =
-    raster(toIntPixel(pixel))
-
+trait Padder {
+  def apply(row: Int, col: Int, src: Raster): Datum
 }
 
-class Bilinear[T <: Datum] extends Interpolator {
-  def apply[T <: Datum](pixel: FractPixel, raster: Raster[T]): GenericDatum = {
+case class ConstPadder(constant: Int) extends Padder {
+  def apply(row: Int, col: Int, src: Raster) : Datum = {
+    if (row < 0 || row >= src.height || col < 0 || col >= src.height) new ConstantDatum(src.numBands, constant)
+    else src(row,col)
+  }
+}
+
+case class NearestNeighbor(val padder: Padder ) extends Interpolator {
+  def apply(pixel: FractPixel, raster: Raster) =
+    padder(round(pixel.row), round(pixel.col), raster)
+}
+
+case class Bilinear (val padder: Padder) extends Interpolator {
+  def apply(pixel: FractPixel, raster: Raster): GenericDatum = {
     val u = floor(pixel.row).toInt
     val v = floor(pixel.col).toInt
     val a = pixel.row - u
     val b = pixel.col - v
-    val A = raster(u,v)
-    val B = raster(u+1,v)
-    val C = raster(u,v+1)
-    val D = raster(u+1,v+1)
-    val result = new Array[Double](A.numBands)
+    val A = padder(u,v, raster)
+    val B = padder(u+1,v, raster)
+    val C = padder(u,v+1, raster)
+    val D = padder(u+1,v+1, raster)
+    val result = new Array[Int](A.numBands)
     for( comp <- 0 until result.length) {
       val e = A(comp) + a*(B(comp) - A(comp))
       val f = C(comp) + a*(D(comp) - C(comp))
-      result(comp) = e + b*(f-e)
+      result(comp) = round(e + b*(f-e))
     }
     GenericDatum(result)
   }

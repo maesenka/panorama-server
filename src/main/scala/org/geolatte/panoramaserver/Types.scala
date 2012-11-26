@@ -7,7 +7,7 @@ import scala.math._
  * @author Karel Maesen, Geovise BVBA
  *         creation-date: 11/23/12
  */
-package object Types {
+object Types {
 
   /**
    * Dimension (width and height) of an Image with top-left coordinates: (0,0)
@@ -16,11 +16,13 @@ package object Types {
     def center: FractPixel = FractPixel( (height - 1) / 2, (width -1) / 2 )
   }
 
+  //TODO -- remove redundancy in operator definitions by using a Trait for Vector operations
+
   /**
    * A type for fractional Pixels
    *
    */
-  sealed case class FractPixel(row: Float, col: Float) {
+  case class FractPixel(row: Float, col: Float) {
     def -(other: FractPixel) : FractPixel = FractPixel(this.row - other.row, this.col - other.col)
     def +(other: FractPixel) : FractPixel = FractPixel(this.row + other.row, this.col + other.col)
     def *(scale: Float) : FractPixel = FractPixel(row*scale, col*scale)
@@ -28,6 +30,12 @@ package object Types {
     def toPixel : Pixel = Pixel(row.toInt, col.toInt)
   }
 
+  case class RectilinearCoordinate(val x: Double, val y: Double) {
+    def -(other: RectilinearCoordinate) : RectilinearCoordinate = RectilinearCoordinate(this.x - other.x, this.y - other.y)
+    def +(other: RectilinearCoordinate) : RectilinearCoordinate = RectilinearCoordinate(this.x + other.x, this.y + other.y)
+    def *(scale: Float) : RectilinearCoordinate = RectilinearCoordinate(x*scale, y*scale)
+    def /(scale: Float) : RectilinearCoordinate = RectilinearCoordinate(x/scale, y/scale)
+  }
 
   /**
    * a Pixel refers to a single raster cell by row (first component) and column (second component).
@@ -60,7 +68,6 @@ package object Types {
       else rem
     }
     val horizontal = if (h < -Pi || h > Pi)  wrapHorizontal(h) else h
-
     val vertical = if (v < 0 || v > Pi) wrapVertical(v) else v
   }
 

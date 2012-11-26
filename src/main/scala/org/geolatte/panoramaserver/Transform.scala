@@ -5,7 +5,7 @@ package org.geolatte.panoramaserver
  *         creation-date: 11/23/12
  */
 
-import scala.math.Pi
+import scala.math._
 import Types._
 
 
@@ -47,8 +47,8 @@ object Transform {
    * @return
    */
   def createImage2ViewPort(center: FractPixel, imageDim: Dimension, scale: Float): Pixel => FractPixel = {
-    val translation = (center/scale - imageDim.center )
-    pixel => pixel.toFractPixel / scale - translation
+    val translation = (imageDim.center - center / scale)
+    pixel => pixel.toFractPixel / scale + translation
   }
 
   /**
@@ -59,12 +59,29 @@ object Transform {
    * @param scale the scale of the viewport, such that 1 px of imageViewPort correspond to scale px of the image
    * @return
    */
-  def createViewPort2Image(center: FractPixel, imageDim: Dimension, scale: Float): Pixel => FractPixel =
-    pixel => {
-      val row = pixel.row * scale + center.row - (imageDim.height - 1) * scale / 2
-      val col = pixel.col * scale + center.col - (imageDim.width - 1) * scale / 2
-      new FractPixel(row.toFloat, col.toFloat)
+  def createViewPort2Image(center: FractPixel, imageDim: Dimension, scale: Float): Pixel => FractPixel = {
+    val translation = center - (imageDim.center * scale)
+    pixel => pixel.toFractPixel * scale + translation
+  }
+
+
+  def createEquirect2Rectilinear(viewingCenter: ViewingAngle): ViewingAngle => RectilinearCoordinate = {
+    val sinCLat = sin(viewingCenter.vertical)
+    val cosCLat = cos(viewingCenter.vertical)
+    angle => {
+      val cosC = sinCLat * sin(angle.vertical) + cosCLat * cos(angle.horizontal - viewingCenter.horizontal)
+      RectilinearCoordinate(
+        cos(angle.vertical) * sin(angle.horizontal - viewingCenter.horizontal) / cosC,
+        (cosCLat * sin(angle.vertical) - sinCLat * cos(angle.vertical) * cos(angle.horizontal - viewingCenter.horizontal)) / cosC
+      )
     }
+  }
+
+  def translate(distVector: FractPixel) : Pixel => FractPixel =
+    p => p.toFractPixel + distVector
+
+  def scale(scale: Float) : Pixel => FractPixel =
+      p => p.toFractPixel * scale
 
 
 }

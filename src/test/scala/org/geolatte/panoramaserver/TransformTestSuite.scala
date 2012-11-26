@@ -1,4 +1,4 @@
-package org.geolatte.panorama
+package org.geolatte.panoramaserver
 
 import org.scalatest.FunSuite
 import scala.math.Pi
