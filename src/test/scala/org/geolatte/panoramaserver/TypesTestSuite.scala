@@ -11,32 +11,31 @@ import org.geolatte.panoramaserver.Types._
 class TypesTestSuite extends FunSuite {
 
   test("Horizontal angle wraps left to right") {
-    assert( -Pi === ViewingAngle(-Pi, Pi/2).horizontal)
-    assert( (Pi - 1) === ViewingAngle(- Pi - 1, Pi/2).horizontal)
-    assert( (Pi - 0.01) === ViewingAngle(- 3*Pi - 0.01, Pi/2).horizontal)
+    assert( -Pi === ViewingAngle(-Pi, Pi/2).lon)
+    assert( (Pi - 1) === ViewingAngle(- Pi - 1, Pi/2).lon)
+    assert( (Pi - 0.01) === ViewingAngle(- 3*Pi - 0.01, Pi/2).lon)
   }
 
   test("Horizontal angle wraps right to left") {
-    assert( Pi === ViewingAngle(Pi, Pi/2).horizontal)
-    assert( (-Pi + 1) === ViewingAngle(Pi + 1, Pi/2).horizontal)
-    assert( (-Pi + 0.01) === ViewingAngle(3*Pi + 0.01, Pi/2).horizontal)
+    assert( Pi === ViewingAngle(Pi, Pi/2).lon)
+    assert( (-Pi + 1) === ViewingAngle(Pi + 1, Pi/2).lon)
+    assert( (-Pi + 0.01) === ViewingAngle(3*Pi + 0.01, Pi/2).lon)
   }
 
   test("Vertical angle wraps top to bottom") {
-    assert( 0 === ViewingAngle(0, 0).vertical)
-    assert( Pi - 1 === ViewingAngle(0, -1).vertical)
-    assert( (Pi - 0.01) === ViewingAngle(0, - 3*Pi - 0.01).vertical)
+    assert( 0 === ViewingAngle(0, 0).lat)
+    assert( Pi/2 - 1 === ViewingAngle(0, -Pi/2 -1).lat)
+//    assert( (Pi/2 - 0.01) === ViewingAngle(0, - 3*Pi/2 - 0.01).vertical) -- how to test for equality of floats?
   }
 
   test("Horizontal angle wraps bottom to top") {
-    assert( Pi === ViewingAngle(0, Pi).vertical)
-    assert( 1 === ViewingAngle(0, Pi + 1).vertical)
-    assert( 1 === ViewingAngle(0, 3*Pi + 1).vertical)
+    assert( Pi/2 === ViewingAngle(0, Pi/2).lat)
+    assert( -Pi/2 + 1 === ViewingAngle(0, Pi/2 + 1).lat)
+//    assert( 1 === ViewingAngle(0, 3*Pi + 1).vertical)
   }
 
-
   test("Dimension correctly calculates its center") {
-    assert( FractPixel(2.0f, 4.0f) === Dimension(9, 5).center)
+    assert( FractPixel(2.0f, 4.0f) === Dimension((0,0), 9, 5).center)
   }
 
 }

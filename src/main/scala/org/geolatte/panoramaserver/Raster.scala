@@ -7,6 +7,7 @@ package org.geolatte.panoramaserver
 
 import Types._
 import java.awt.image.{ColorModel, BufferedImage}
+import org.geolatte.panoramaserver.Transform.InverseMapper
 
 
 trait Raster extends Traversable[Pixel]{
@@ -21,20 +22,19 @@ trait Raster extends Traversable[Pixel]{
 
   def numBands: Int
 
+  def dimension: Dimension
+
   def foreach[U](f: (Pixel) => U) =  {
-    for (r <- 0 until height; c <- 0 until width) {
-          f(Pixel(r, c))
+    for (x <- 0 until width; y <- 0 until height) {
+          f(Pixel(x,y))
     }
   }
 
-  def createCompatibleRaster : Raster
+  def createCompatibleRaster(width: Int = this.width, height: Int = this.height) : Raster
 
   def applyOperation(f: Datum => Datum): Raster = {
-    val dest = createCompatibleRaster
-    for (r <- 0 until height; c <- 0 until width) {
-      val p = Pixel(r, c)
-      dest(p) = f(this(p))
-    }
+    val dest = createCompatibleRaster()
+    this foreach {p => dest(p) = f(this(p))}
     dest
   }
 
@@ -46,7 +46,6 @@ trait Raster extends Traversable[Pixel]{
         }
         case _ => false
       }
-
 }
 
 class BufferedImageWrapper(val img: BufferedImage) extends Raster {
@@ -55,21 +54,23 @@ class BufferedImageWrapper(val img: BufferedImage) extends Raster {
   def apply(pixel: Pixel): GenericDatum = {
     val bands = new Array[Int](numBands)
     for (i <- 0 until numBands) {
-      bands(i) = img.getRaster.getSample(pixel.col, pixel.row, i)
+      bands(i) = img.getRaster.getSample(pixel.x, pixel.y, i)
     }
     GenericDatum(bands)
   }
 
   def update(pixel: Pixel, datum: Datum): Unit =
     for (b <- 0 until numBands)
-      img.getRaster.setSample(pixel.col, pixel.row, b, datum(b))
+      img.getRaster.setSample(pixel.x, pixel.y, b, datum(b))
 
   def width: Int = img.getWidth
 
   def height: Int = img.getHeight
 
+  def dimension : Dimension = Dimension(Pixel(0,0), width, height)
 
-  def createCompatibleRaster: BufferedImageWrapper =
+
+  def createCompatibleRaster (width: Int = this.width, height: Int = this.height) : BufferedImageWrapper =
      new BufferedImageWrapper(new BufferedImage(
        this.img.getColorModel,
        this.img.getColorModel.createCompatibleWritableRaster(width, height),

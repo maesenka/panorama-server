@@ -10,31 +10,39 @@ import scala.math._
 object Types {
 
   /**
-   * Dimension (width and height) of an Image with top-left coordinates: (0,0)
+   * Dimension (width and height) of an Image with top-left coordinates origin
    */
-  case class Dimension(val width: Int, val height: Int) {
-    def center: FractPixel = FractPixel( (height - 1) / 2, (width -1) / 2 )
+  case class Dimension(origin: Pixel, width: Int, height: Int) {
+    def center: FractPixel = FractPixel((height - 1) / 2, (width - 1) / 2)
   }
 
-  //TODO -- remove redundancy in operator definitions by using a Trait for Vector operations
+  trait Coordinate {
+    type T <: Coordinate
+
+    val x: Double
+    val y: Double
+
+    def -(other: T): T = make(this.x - other.x, this.y - other.y)
+
+    def +(other: T): T = make(this.x + other.x, this.y + other.y)
+
+    def *(scale: Double): T = make(x * scale, y * scale)
+
+    def /(scale: Double): T = make(x / scale, y / scale)
+
+    def make(row: Double, col: Double): T
+
+
+  };
 
   /**
    * A type for fractional Pixels
    *
    */
-  case class FractPixel(row: Float, col: Float) {
-    def -(other: FractPixel) : FractPixel = FractPixel(this.row - other.row, this.col - other.col)
-    def +(other: FractPixel) : FractPixel = FractPixel(this.row + other.row, this.col + other.col)
-    def *(scale: Float) : FractPixel = FractPixel(row*scale, col*scale)
-    def /(scale: Float) : FractPixel = FractPixel(row/scale, col/scale)
-    def toPixel : Pixel = Pixel(row.toInt, col.toInt)
-  }
-
-  case class RectilinearCoordinate(val x: Double, val y: Double) {
-    def -(other: RectilinearCoordinate) : RectilinearCoordinate = RectilinearCoordinate(this.x - other.x, this.y - other.y)
-    def +(other: RectilinearCoordinate) : RectilinearCoordinate = RectilinearCoordinate(this.x + other.x, this.y + other.y)
-    def *(scale: Float) : RectilinearCoordinate = RectilinearCoordinate(x*scale, y*scale)
-    def /(scale: Float) : RectilinearCoordinate = RectilinearCoordinate(x/scale, y/scale)
+  case class FractPixel(x: Double, y: Double) extends Coordinate {
+    type T = FractPixel
+    def toPixel: Pixel = Pixel(round(x).toInt, round(y).toInt)
+    def make(x: Double, y: Double): FractPixel = FractPixel(x, y)
   }
 
   /**
@@ -43,32 +51,38 @@ object Types {
    * <p>Spatially, {@code Pixels} correspond to the centers of the raster cells </p>
    *
    */
-  sealed case class Pixel(row: Int, col: Int) {
-    def -(other: Pixel) : Pixel = Pixel(this.row - other.row, this.col - other.col)
-    def + (other: Pixel) :Pixel = Pixel(this.row + other.row, this.col + other.col)
-    def *(scale: Int) : Pixel = Pixel(row*scale, col*scale)
-    def /(scale: Int) : Pixel = Pixel(row/scale, col/scale)
-    def toFractPixel : FractPixel = FractPixel(row.toInt, col.toInt)
+  sealed case class Pixel(x: Int, y: Int) {
+//    def toFractPixel: FractPixel = FractPixel(x, y)
   }
 
   /**
    * A viewing angle
-   * @param h the horizontal angle (will be normalized to within in the range [-Pi, Pi])
-   * @param v the vertical angle (will be normalized to within in the range [0 , Pi])
+   * @param h the horizontal angle (will be normalized to within in the range [-Pi, Pi]) or longitude
+   * @param v the vertical angle (will be normalized to within in the range [-Pi/2 , Pi/2]) or latitude
    */
-  sealed case class ViewingAngle(private var h: Double, private var v: Double) {
+  case class ViewingAngle(private val h: Double, private val v: Double) extends Coordinate {
+    type T = ViewingAngle
+
     private def wrapHorizontal(v: Double) = {
       val rem = v % Pi
       if (rem < 0) Pi + rem
       else -Pi + rem
     }
-    private def wrapVertical(v: Double)= {
-      val rem = v % Pi
-      if (rem < 0) Pi  + rem
-      else rem
+
+    private def wrapVertical(v: Double) = {
+      val rem = v % (Pi/2)
+      if (rem < 0) (Pi/2) + rem
+      else -Pi/2 + rem
     }
-    val horizontal = if (h < -Pi || h > Pi)  wrapHorizontal(h) else h
-    val vertical = if (v < 0 || v > Pi) wrapVertical(v) else v
+
+    val x = if (h < -Pi || h >= Pi) wrapHorizontal(h) else h
+    val y = if (v < -Pi/2 || v >= Pi/2) wrapVertical(v) else v
+
+    val lon = x //longitude synonym for x
+    val lat = y //latitude synonym for y
+
+    override def make(x: Double, y: Double) = ViewingAngle(x, y)
+
   }
 
   object ViewingAngle {
@@ -76,13 +90,13 @@ object Types {
   }
 
   object Pixel {
-    implicit def pair2Pixel(pair: (Int, Int)): Pixel = new Pixel(pair._1, pair._2)
+    implicit def pair2Pixel(pair: (Int, Int)): Pixel = Pixel(pair._1, pair._2)
+
+    implicit def pixel2FractPixel(p: Pixel): FractPixel = FractPixel(p.x, p.y)
   }
 
   object FractPixel {
-    implicit def pairFloat2Pixel(pair: (Float, Float)): FractPixel = new FractPixel(pair._1, pair._2)
-
-    implicit def pairDouble2Pixel(pair: (Double, Double)): FractPixel = new FractPixel(pair._1.toFloat, pair._2.toFloat)
+    implicit def pairDouble2Pixel(pair: (Double, Double)): FractPixel = new FractPixel(pair._1, pair._2)
   }
 
 

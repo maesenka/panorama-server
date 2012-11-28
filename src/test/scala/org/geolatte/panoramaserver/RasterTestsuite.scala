@@ -10,7 +10,7 @@ import org.scalatest.FunSuite
 class RasterTestSuit extends FunSuite {
 
 
-  val rasterData = Array.tabulate(10, 20)((r, c) => new MockDatum(r, c))
+  val rasterData = Array.tabulate(10, 20)((r, c) => new MockDatum(c, r))
   val testRaster = new MockRaster(rasterData)
 
   println(testRaster)
@@ -22,9 +22,9 @@ class RasterTestSuit extends FunSuite {
 
   test("raster access returns correct pixels") {
     for {
-      c <- 0 until testRaster.width;
-      r <- 0 until testRaster.height
-    } assert(testRaster(r, c) === new MockDatum(r, c))
+      x <- 0 until testRaster.width;
+      y <- 0 until testRaster.height
+    } assert(testRaster(x, y) === new MockDatum(x, y))
   }
 
   test("Rasters are equal to themselves") {
@@ -32,10 +32,10 @@ class RasterTestSuit extends FunSuite {
   }
 
   test("raster are equal when having same dimensions and same sample data") {
-    assert(testRaster === new MockRaster(Array.tabulate(10, 20)((r, c) => new MockDatum(r, c))))
+    assert(testRaster === new MockRaster(Array.tabulate(10, 20)((r, c) => new MockDatum(c, r))))
   }
 
   test("raster are unequal when having same dimensions but different sample data") {
-    assert(testRaster != new MockRaster(Array.tabulate(10, 20)((r, c) => new MockDatum(r+1, c+1))))
+    assert(testRaster != new MockRaster(Array.tabulate(10, 20)((r, c) => new MockDatum(c+1, r+1))))
   }
 }

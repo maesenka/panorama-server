@@ -39,8 +39,8 @@ object TestImageGenerator extends App {
   }
 
   def paintGrid(img: BufferedImage) : Unit = {
-    val latitudes = 0 to 180 by 30
-    val longitudes = -180 to 180 by 30
+    val latitudes = 0 to 180 by 15
+    val longitudes = -180 to 180 by 15
     val g2: Graphics2D = img.getGraphics.asInstanceOf[Graphics2D];
     g2.setStroke(new BasicStroke(10))
     g2.setColor(Color.BLACK)
@@ -75,7 +75,7 @@ object TestImageGenerator extends App {
   fillImage(bufferedImage)
   paintGrid(bufferedImage)
 
-  reportSamples(bufferedImage, 1000, 1000, 10, 10)
+//  reportSamples(bufferedImage, 1000, 1000, 10, 10)
 
   //ImageIO.write(bufferedImage, "PNG", outputFile)
 

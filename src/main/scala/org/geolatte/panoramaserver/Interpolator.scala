@@ -21,23 +21,23 @@ trait Padder {
 }
 
 case class ConstPadder(constant: Int) extends Padder {
-  def apply(row: Int, col: Int, src: Raster) : Datum = {
-    if (row < 0 || row >= src.height || col < 0 || col >= src.height) new ConstantDatum(src.numBands, constant)
-    else src(row,col)
+  def apply(x: Int, y: Int, src: Raster) : Datum = {
+    if (y < 0 || y >= src.height || x < 0 || x >= src.width) new ConstantDatum(src.numBands, constant)
+    else src(x,y)
   }
 }
 
 case class NearestNeighbor(val padder: Padder ) extends Interpolator {
-  def apply(pixel: FractPixel, raster: Raster) =
-    padder(round(pixel.row), round(pixel.col), raster)
+  def apply(pixel: FractPixel, raster: Raster): Datum =
+    padder(round(pixel.x).toInt, round(pixel.y).toInt, raster)
 }
 
 case class Bilinear (val padder: Padder) extends Interpolator {
-  def apply(pixel: FractPixel, raster: Raster): GenericDatum = {
-    val u = floor(pixel.row).toInt
-    val v = floor(pixel.col).toInt
-    val a = pixel.row - u
-    val b = pixel.col - v
+  def apply(pixel: FractPixel, raster: Raster): Datum = {
+    val u = floor(pixel.x).toInt
+    val v = floor(pixel.y).toInt
+    val a = pixel.x - u
+    val b = pixel.y - v
     val A = padder(u,v, raster)
     val B = padder(u+1,v, raster)
     val C = padder(u,v+1, raster)
@@ -46,7 +46,7 @@ case class Bilinear (val padder: Padder) extends Interpolator {
     for( comp <- 0 until result.length) {
       val e = A(comp) + a*(B(comp) - A(comp))
       val f = C(comp) + a*(D(comp) - C(comp))
-      result(comp) = round(e + b*(f-e))
+      result(comp) = round(e + b*(f-e)).toInt
     }
     GenericDatum(result)
   }
