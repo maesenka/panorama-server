@@ -57,8 +57,8 @@ object Types {
 
   /**
    * A viewing angle
-   * @param h the horizontal angle (will be normalized to within in the range [-Pi, Pi]) or longitude
-   * @param v the vertical angle (will be normalized to within in the range [-Pi/2 , Pi/2]) or latitude
+   * @param h the horizontal angle (will be normalized to within in the range [-Pi, Pi)) or longitude
+   * @param v the vertical angle (will be normalized to within in the range [-Pi/2 , Pi/2)) or latitude
    */
   case class ViewingAngle(private val h: Double, private val v: Double) extends Coordinate {
     type T = ViewingAngle
@@ -71,12 +71,12 @@ object Types {
 
     private def wrapVertical(v: Double) = {
       val rem = v % (Pi/2)
-      if (rem < 0) (Pi/2) + rem
+      if (rem <= 0) (Pi/2) + rem
       else -Pi/2 + rem
     }
 
     val x = if (h < -Pi || h >= Pi) wrapHorizontal(h) else h
-    val y = if (v < -Pi/2 || v >= Pi/2) wrapVertical(v) else v
+    val y = if (v <= -Pi/2 || v > Pi/2) wrapVertical(v) else v
 
     val lon = x //longitude synonym for x
     val lat = y //latitude synonym for y

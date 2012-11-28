@@ -125,7 +125,7 @@ object Transform {
     def applyInverseMapper(src: Raster, interp: Interpolator): Raster = applyInverseMapper(src, interp, src.dimension)
   }
 
-  case class RectilinearInverseMapper(val viewingAngle: ViewingAngle, val pixelAngle: Double = (Pi / 2400)) {
+  case class RectilinearInverseMapper(val viewingAngle: ViewingAngle, val hFov: Double, val pixelAngle: Double = (Pi / 2400)) {
     val radius = 1 / (2 * pixelAngle)
     //-- heuristic 2400/(2*Pi)
     val pixel2Equirect = createImgPixel2Equirect(pixelAngle, 0.0d)
@@ -137,8 +137,8 @@ object Transform {
     val forward: FractPixel => FractPixel = p => toImagePixel(equirect2RectiLinear(pixel2Equirect(p)))
     val inverse: FractPixel => FractPixel = p => equirect2pixel(rectilinear2Equirect(toImagePixel(p)))
     private val mapper = InverseMapper(forward, inverse)
-    val FoVUpperLeft = viewingAngle + ViewingAngle(-Pi / 3, +Pi / 6)
-    val FoVLowerRight = viewingAngle + ViewingAngle(Pi / 3, -Pi / 6)
+    val FoVUpperLeft = viewingAngle + ViewingAngle(-hFov/2, +hFov/4)
+    val FoVLowerRight = viewingAngle + ViewingAngle(hFov/2, -hFov/4)
     val FoVULPixel = equirect2pixel(FoVUpperLeft)
     val FoVLRPixel = equirect2pixel(FoVLowerRight)
     val region = Dimension(FoVULPixel.toPixel, round(FoVLRPixel.x - FoVULPixel.x).toInt, round(FoVLRPixel.y - FoVULPixel.y).toInt)

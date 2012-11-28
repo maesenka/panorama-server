@@ -13,7 +13,7 @@ class RasterTestSuit extends FunSuite {
   val rasterData = Array.tabulate(10, 20)((r, c) => new MockDatum(c, r))
   val testRaster = new MockRaster(rasterData)
 
-  println(testRaster)
+//  println(testRaster)
 
   test("raster reports correct size") {
     assert(testRaster.width === 20)

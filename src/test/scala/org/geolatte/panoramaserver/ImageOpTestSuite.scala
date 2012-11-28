@@ -61,9 +61,9 @@ class ImageOpTestSuite extends FunSuite with Instrumented {
 
   test("Rectilinear projection test") {
     val pixelAngle = (2*Pi)/4800
-    val viewingAngle = ViewingAngle(Pi/2, 0)
-    val mapper = new RectilinearInverseMapper(viewingAngle)
-    val (dest,destDim) = mapper.inverseMap(srcRaster)
+    val viewingAngle = ViewingAngle(0, 0)
+    val mapper = new RectilinearInverseMapper(viewingAngle, Pi/2)
+    val (dest,destDim) = timed(mapper.inverseMap(srcRaster))
     ImageIO.write(dest.asInstanceOf[BufferedImageWrapper].img, "PNG", new File("/tmp/rectlinear-" + viewingAngle.lon + "-" + viewingAngle.lat +".png"))
   }
 
