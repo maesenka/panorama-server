@@ -1,153 +1,40 @@
 package org.geolatte.panoramaserver
 
+import org.geolatte.panoramaserver.Types._
+import org.geolatte.panoramaserver.Types.TransformMatrix
+
+
 /**
  * @author Karel Maesen, Geovise BVBA
- *         creation-date: 11/23/12
+ * creation-date: 11/29/12
  */
+trait Transform[S <: Coordinate, D <: Coordinate] {
 
-import scala.math._
-import Types._
+  val forward : S => D
+  val inverse : D => S
 
-
-object Transform {
-
-  /**
-   * creates a Projection function from an image Pixel to a ViewingAngle (EquiRectangular coordinates)
-   *
-   * <p>This function assumes an image model where top-left corresponds to ViewingAngle(-Pi, 0)</p>
-   *
-   * @param pixelAngle
-   * @param yawDeviation
-   * @return
-   */
-  def createImgPixel2Equirect(pixelAngle: Double, yawDeviation: Double = 0.0): FractPixel => ViewingAngle =
-    pixel => new ViewingAngle(-Pi + yawDeviation + (pixel.x * pixelAngle), Pi / 2 - pixel.y * pixelAngle)
-
-  /**
-   * creates a Projection function from a ViewingAngle (EquiRectangular coordinates) to an image Pixel.
-   *
-   * <p>This function assumes an image model where top-left corresponds to ViewingAngle(-Pi, 0)</p>
-   *
-   * @param pixelAngle
-   * @param yawDeviation
-   * @return
-   */
-  def createEquirect2ImgPixel(pixelAngle: Double, yawDeviation: Double = 0.0): ViewingAngle => FractPixel =
-    angle => new FractPixel(
-      ((angle.lon + Pi - yawDeviation) / pixelAngle),
-      ((Pi / 2 - angle.lat) / pixelAngle)
-    )
-
-  /**
-   * Creates a transform from image pixels to pixels of a viewport or canvas that is centered on a specified image pixel
-   *
-   * @param center image pixel at the center of the view port
-   * @param imageDim the { @code Dimension} of the viewport
-   * @param scale the scale of the viewport, such that 1 px of imageViewPort correspond to scale px of the image
-   * @return
-   */
-  def createImage2ViewPort(center: FractPixel, imageDim: Dimension, scale: Float): FractPixel => FractPixel = {
-    val translation = (imageDim.center - center / scale)
-    pixel => pixel / scale + translation
+  def destinationDimension (srcRegion: AreaOfInterest[S]) : AreaOfInterest[D] = {
+    val dTopleft = forward(srcRegion.topleft)
+    val dBottomright = forward(srcRegion.bottomright)
+    AreaOfInterest[D](dTopleft, dBottomright)
   }
 
-  /**
-   * Creates a transform from image pixels to pixels  of a viewport or canvas that is centered on a specified image pixel
-   *
-   * @param center image pixel at the center of the view port
-   * @param imageDim the { @code Dimension} of the viewport
-   * @param scale the scale of the viewport, such that 1 px of imageViewPort correspond to scale px of the image
-   * @return
-   */
-  def createViewPort2Image(center: FractPixel, imageDim: Dimension, scale: Float): FractPixel => FractPixel = {
-    val translation = center - (imageDim.center * scale)
-    pixel => pixel * scale + translation
-  }
-
-
-  def createEquirect2Rectilinear(viewingCenter: ViewingAngle, radius: Double): ViewingAngle => FractPixel = {
-    val sinCLat = sin(viewingCenter.lat)
-    val cosCLat = cos(viewingCenter.lat)
-    angle => {
-      val cosC = sinCLat * sin(angle.lat) + cosCLat * cos(angle.lat) * cos(angle.lon - viewingCenter.lon)
-      FractPixel(
-        radius * cos(angle.lat) * sin(angle.lon - viewingCenter.lon) / cosC,
-        radius * (cosCLat * sin(angle.lat) - sinCLat * cos(angle.lat) * cos(angle.lon - viewingCenter.lon)) / cosC
-      )
-    }
-  }
-
-  def createRectilinear2Equirect(viewingCenter: ViewingAngle, radius: Double): FractPixel => ViewingAngle =
-    rc => {
-      val theR = sqrt(rc.x * rc.x + rc.y * rc.y)
-      val theC = atan2(theR, radius)
-      val cosC = cos(theC)
-      val sinC = sin(theC)
-      val cosCLat = cos(viewingCenter.lat)
-      val sinCLat = sin(viewingCenter.lat)
-      ViewingAngle(
-        viewingCenter.lon + atan2(rc.x * sinC, theR * cosCLat * cosC - rc.y * sinCLat * sinC),
-        asin(cosC * sinCLat + (rc.y * sinC * cosCLat / theR))
-      )
-    }
-
-
-  def translate(distVector: FractPixel): FractPixel => FractPixel =
-    p => p + distVector
-
-  def scale(scale: Double): FractPixel => FractPixel =
-    p => p * scale
-
-
-  case class InverseMapper[D <: FractPixel](forward: FractPixel => D, inverse: FractPixel => D) {
-
-    def destinationDimension(srcRegion: Dimension): Dimension = {
-      val projUL = forward(srcRegion.origin)
-      val projLR = forward(FractPixel(srcRegion.origin.x + srcRegion.width, srcRegion.origin.y + srcRegion.height))
-      val upperLeft = Pixel(round(min(projUL.x, projLR.x)).toInt, round(min(projUL.y, projLR.y)).toInt)
-      val lowerRight = Pixel(round(max(projUL.x, projLR.x)).toInt, round(max(projUL.y, projLR.y)).toInt)
-      val r = Dimension(upperLeft, round(lowerRight.x - upperLeft.x), round(lowerRight.y - upperLeft.y))
-      r
-    }
-
-    def applyInverseMapper(src: Raster, interp: Interpolator, region: Dimension): Raster = {
-      val destDim = destinationDimension(region)
-      val dest = src.createCompatibleRaster(destDim.width, destDim.height)
-      dest foreach {
-        (p: Pixel) => {
-          val dP = FractPixel(p.x + destDim.origin.x, p.y + destDim.origin.y)
-          dest(p) = interp(inverse(dP), src)
-        }
-      }
-      dest
-    }
-
-    def applyInverseMapper(src: Raster, interp: Interpolator): Raster = applyInverseMapper(src, interp, src.dimension)
-  }
-
-  case class RectilinearInverseMapper(val viewingAngle: ViewingAngle, val hFov: Double, val pixelAngle: Double = (Pi / 2400)) {
-    val radius = 1 / (2 * pixelAngle)
-    //-- heuristic 2400/(2*Pi)
-    val pixel2Equirect = createImgPixel2Equirect(pixelAngle, 0.0d)
-    val equirect2pixel = createEquirect2ImgPixel(pixelAngle, 0.0d)
-    val equirect2RectiLinear = createEquirect2Rectilinear(viewingAngle, radius)
-    val rectilinear2Equirect = createRectilinear2Equirect(viewingAngle, radius)
-    //toImagePixel takes into account the difference in orientation of the rectilinear coordinate Y-axis
-    val toImagePixel: FractPixel => FractPixel = p => FractPixel(p.x, -p.y)
-    val forward: FractPixel => FractPixel = p => toImagePixel(equirect2RectiLinear(pixel2Equirect(p)))
-    val inverse: FractPixel => FractPixel = p => equirect2pixel(rectilinear2Equirect(toImagePixel(p)))
-    private val mapper = InverseMapper(forward, inverse)
-    val FoVUpperLeft = viewingAngle + ViewingAngle(-hFov/2, +hFov/4)
-    val FoVLowerRight = viewingAngle + ViewingAngle(hFov/2, -hFov/4)
-    val FoVULPixel = equirect2pixel(FoVUpperLeft)
-    val FoVLRPixel = equirect2pixel(FoVLowerRight)
-    val region = Dimension(FoVULPixel.toPixel, round(FoVLRPixel.x - FoVULPixel.x).toInt, round(FoVLRPixel.y - FoVULPixel.y).toInt)
-
-    def inverseMap(srcRaster: Raster): (Raster, Dimension) = {
-      val d = mapper.applyInverseMapper(srcRaster, Bilinear(ConstPadder(0)), region)
-      (d, mapper.destinationDimension(region))
-    }
-  }
-
-
+  def append[E <: Coordinate](nextTransform: Transform[D,E]) : Transform[S,E] = TransformPipeline(this, nextTransform)
 }
+
+case class AffineTransform[S <: Coordinate, D <: Coordinate](forwardMatrix : TransformMatrix[S,D],
+                                                             inverseMatrix: TransformMatrix[D,S]) extends Transform[S, D]{
+  val forward : S => D  = (s : S) => forwardMatrix * s
+  val inverse : D => S = (d : D) => inverseMatrix * d
+}
+
+
+case class GeneralTransform[ S <: Coordinate, D <: Coordinate](forward : S => D, inverse : D => S)
+
+
+case class TransformPipeline[S <: Coordinate, B <: Coordinate ,D <: Coordinate](first: Transform[S, B], next: Transform[B,D]) extends Transform[S,D]{
+  val forward: (S) => D = first.forward andThen next.forward
+  val inverse: (D) => S = next.inverse andThen first.inverse
+}
+
+

@@ -7,7 +7,7 @@ package org.geolatte.panoramaserver
 
 import Types._
 import java.awt.image.{ColorModel, BufferedImage}
-import org.geolatte.panoramaserver.Transform.InverseMapper
+import org.geolatte.panoramaserver.TransformFactory.InverseMapper
 
 
 trait Raster extends Traversable[Pixel]{

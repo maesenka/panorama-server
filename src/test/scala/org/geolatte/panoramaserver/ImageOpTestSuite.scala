@@ -1,12 +1,9 @@
 package org.geolatte.panoramaserver
 
 import org.scalatest.FunSuite
-import org.geolatte.panoramaserver._
 import java.io.File
 import javax.imageio.ImageIO
-import org.geolatte.panoramaserver.Transform._
-import java.awt.geom.AffineTransform
-import java.awt.image.AffineTransformOp
+import org.geolatte.panoramaserver.TransformFactory._
 import org.geolatte.panoramaserver.Types._
 import scala.math._
 
@@ -61,7 +58,7 @@ class ImageOpTestSuite extends FunSuite with Instrumented {
 
   test("Rectilinear projection test") {
     val pixelAngle = (2*Pi)/4800
-    val viewingAngle = ViewingAngle(0, 0)
+    val viewingAngle = LonLat(0, 0)
     val mapper = new RectilinearInverseMapper(viewingAngle, Pi/2)
     val (dest,destDim) = timed(mapper.inverseMap(srcRaster))
     ImageIO.write(dest.asInstanceOf[BufferedImageWrapper].img, "PNG", new File("/tmp/rectlinear-" + viewingAngle.lon + "-" + viewingAngle.lat +".png"))

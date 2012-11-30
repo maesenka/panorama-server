@@ -10,10 +10,32 @@ import scala.math._
 object Types {
 
   /**
+   * A 3x3 transformation matrix
+   */
+  case class TransformMatrix [ S <: Coordinate, D <: Coordinate]  (
+    m00: Double, m01: Double, m02: Double,
+    m10: Double, m11: Double, m12: Double ) (implicit e : (Double, Double) => D ){
+
+    def * (c : S) : D = e(
+        m00*c.x + m01*c.y + m02,
+        m10*c.x + m11*c.y + m12
+    )
+  }
+
+  /**
    * Dimension (width and height) of an Image with top-left coordinates origin
    */
   case class Dimension(origin: Pixel, width: Int, height: Int) {
-    def center: FractPixel = FractPixel((height - 1) / 2, (width - 1) / 2)
+    def center: FractPixel = FractPixel( (width - 1) / 2, (height - 1) / 2)
+  }
+
+  case class AreaOfInterest[C <: Coordinate](topleft: C, bottomright: C) {
+    def center = topleft.make(
+      (bottomright.x - topleft.x) / 2,
+      (bottomright.y - topleft.y) / 2)
+
+    def width = bottomright.x - topleft.x + 1
+    def height = bottomright.y - topleft.y + 1
   }
 
   trait Coordinate {
@@ -45,6 +67,11 @@ object Types {
     def make(x: Double, y: Double): FractPixel = FractPixel(x, y)
   }
 
+  case class Rectilinear(x: Double, y: Double) extends Coordinate {
+    type T = Rectilinear
+    def make(x: Double, y: Double): Rectilinear = Rectilinear(x,y)
+  }
+
   /**
    * a Pixel refers to a single raster cell by row (first component) and column (second component).
    *
@@ -56,12 +83,13 @@ object Types {
   }
 
   /**
-   * A viewing angle
+   * An coordinate in angular units (radians).
+   *
    * @param h the horizontal angle (will be normalized to within in the range [-Pi, Pi)) or longitude
    * @param v the vertical angle (will be normalized to within in the range [-Pi/2 , Pi/2)) or latitude
    */
-  case class ViewingAngle(private val h: Double, private val v: Double) extends Coordinate {
-    type T = ViewingAngle
+  case class LonLat(private val h: Double, private val v: Double) extends Coordinate {
+    type T = LonLat
 
     private def wrapHorizontal(v: Double) = {
       val rem = v % Pi
@@ -81,22 +109,23 @@ object Types {
     val lon = x //longitude synonym for x
     val lat = y //latitude synonym for y
 
-    override def make(x: Double, y: Double) = ViewingAngle(x, y)
+    override def make(x: Double, y: Double) = LonLat(x, y)
 
   }
 
-  object ViewingAngle {
-    implicit def pair2ViewingAngle(pair: (Double, Double)): ViewingAngle = new ViewingAngle(pair._1, pair._2)
+  object LonLat {
+    implicit def pair2LonLat(pair: (Double, Double)): LonLat = LonLat(pair._1, pair._2)
+    implicit def mkLonLat(x: Double, y: Double): LonLat = LonLat(x,y)
   }
 
   object Pixel {
     implicit def pair2Pixel(pair: (Int, Int)): Pixel = Pixel(pair._1, pair._2)
-
     implicit def pixel2FractPixel(p: Pixel): FractPixel = FractPixel(p.x, p.y)
   }
 
   object FractPixel {
-    implicit def pairDouble2Pixel(pair: (Double, Double)): FractPixel = new FractPixel(pair._1, pair._2)
+    implicit def pairDouble2Pixel(pair: (Double, Double)): FractPixel = FractPixel(pair._1, pair._2)
+    implicit def mkFractPixel(x: Double, y: Double): FractPixel = FractPixel(x,y)
   }
 
 
