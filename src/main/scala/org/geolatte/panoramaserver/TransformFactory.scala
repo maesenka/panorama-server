@@ -11,6 +11,12 @@ import Types._
 
 object TransformFactory {
 
+  def mkPixel2EquirectTransform(imgDimension: Dimension, yawDeviation: Double = 0.0) : AffineTransform[FractPixel, LonLat] = {
+    val pixelAngle = 2*Pi/imgDimension.width
+    val forwardTM = TransformMatrix[FractPixel, LonLat](pixelAngle, 0.0, -Pi + yawDeviation, 0.0, -pixelAngle, Pi/2)
+    AffineTransform(forwardTM, forwardTM.inverse)
+  }
+
   /**
    * creates a Projection function from an image Pixel to a ViewingAngle (EquiRectangular coordinates)
    *

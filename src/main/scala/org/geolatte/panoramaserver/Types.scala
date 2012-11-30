@@ -14,28 +14,34 @@ object Types {
    */
   case class TransformMatrix [ S <: Coordinate, D <: Coordinate]  (
     m00: Double, m01: Double, m02: Double,
-    m10: Double, m11: Double, m12: Double ) (implicit e : (Double, Double) => D ){
+    m10: Double, m11: Double, m12: Double ) (implicit cf : CoordinateFactory[D]){
 
-    def * (c : S) : D = e(
-        m00*c.x + m01*c.y + m02,
-        m10*c.x + m11*c.y + m12
+    def * (c : S) : D = cf( m00*c.x + m01*c.y + m02, m10*c.x + m11*c.y + m12)
+
+    def * [E <: Coordinate] (other : TransformMatrix[E,S]) = TransformMatrix[E,D] (
+      m00*other.m00 + m01*other.m10, m00*other.m01 + m01*other.m11, m00*other.m02 + m01*other.m12 + m02,
+      m10*other.m00 + m11*other.m10, m10*other.m01 + m11*other.m11, m10*other.m02 + m11*other.m12 + m12
     )
+
+    def inverse(implicit cf : CoordinateFactory[S]): TransformMatrix[D, S] = {
+      val h = m11 * m00 - m10 * m01
+      new TransformMatrix[D, S](
+        m11 / h, m01 / h, (m01 * m12 - m11 * m02) / h,
+        -m10 / h,m00 / h, (m10 * m02 - m00 * m12) / h)
+    }
   }
 
   /**
    * Dimension (width and height) of an Image with top-left coordinates origin
    */
   case class Dimension(origin: Pixel, width: Int, height: Int) {
-    def center: FractPixel = FractPixel( (width - 1) / 2, (height - 1) / 2)
+    def center: FractPixel = FractPixel( origin.x + width/2, origin.y + height/2)
   }
 
-  case class AreaOfInterest[C <: Coordinate](topleft: C, bottomright: C) {
-    def center = topleft.make(
-      (bottomright.x - topleft.x) / 2,
-      (bottomright.y - topleft.y) / 2)
-
+  case class AreaOfInterest[C <: Coordinate](topleft: C, bottomright: C)(implicit cf: CoordinateFactory[C]) {
     def width = bottomright.x - topleft.x + 1
     def height = bottomright.y - topleft.y + 1
+    def center = cf(topleft.x + width/2, topleft.y + height/2)
   }
 
   trait Coordinate {
@@ -44,16 +50,13 @@ object Types {
     val x: Double
     val y: Double
 
-    def -(other: T): T = make(this.x - other.x, this.y - other.y)
+    def -(other: T)(implicit cf: CoordinateFactory[T]): T = cf(this.x - other.x, this.y - other.y)
 
-    def +(other: T): T = make(this.x + other.x, this.y + other.y)
+    def +(other: T)(implicit cf: CoordinateFactory[T]): T =  cf(this.x + other.x, this.y + other.y)
 
-    def *(scale: Double): T = make(x * scale, y * scale)
+    def *(scale: Double)(implicit cf: CoordinateFactory[T]): T = cf(x * scale, y * scale)
 
-    def /(scale: Double): T = make(x / scale, y / scale)
-
-    def make(row: Double, col: Double): T
-
+    def /(scale: Double)(implicit cf: CoordinateFactory[T]): T = cf(x / scale, y / scale)
 
   };
 
@@ -64,22 +67,20 @@ object Types {
   case class FractPixel(x: Double, y: Double) extends Coordinate {
     type T = FractPixel
     def toPixel: Pixel = Pixel(round(x).toInt, round(y).toInt)
-    def make(x: Double, y: Double): FractPixel = FractPixel(x, y)
   }
 
   case class Rectilinear(x: Double, y: Double) extends Coordinate {
     type T = Rectilinear
-    def make(x: Double, y: Double): Rectilinear = Rectilinear(x,y)
   }
 
   /**
    * a Pixel refers to a single raster cell by row (first component) and column (second component).
    *
-   * <p>Spatially, {@code Pixels} correspond to the centers of the raster cells </p>
+   * <p>Spatially, {@code Pixels} corresponds to the topleft-point of the raster cells </p>
    *
    */
-  sealed case class Pixel(x: Int, y: Int) {
-//    def toFractPixel: FractPixel = FractPixel(x, y)
+  case class Pixel(x: Int, y: Int) {
+    def toFractPixel: FractPixel = FractPixel(x, y)
   }
 
   /**
@@ -108,14 +109,15 @@ object Types {
 
     val lon = x //longitude synonym for x
     val lat = y //latitude synonym for y
+  }
 
-    override def make(x: Double, y: Double) = LonLat(x, y)
-
+  trait CoordinateFactory[D <: Coordinate] {
+    def apply(x: Double, y: Double) : D
   }
 
   object LonLat {
     implicit def pair2LonLat(pair: (Double, Double)): LonLat = LonLat(pair._1, pair._2)
-    implicit def mkLonLat(x: Double, y: Double): LonLat = LonLat(x,y)
+    implicit val factory = new CoordinateFactory[LonLat] { def apply(x: Double, y: Double) = LonLat(x,y) }
   }
 
   object Pixel {
@@ -123,11 +125,15 @@ object Types {
     implicit def pixel2FractPixel(p: Pixel): FractPixel = FractPixel(p.x, p.y)
   }
 
-  object FractPixel {
-    implicit def pairDouble2Pixel(pair: (Double, Double)): FractPixel = FractPixel(pair._1, pair._2)
-    implicit def mkFractPixel(x: Double, y: Double): FractPixel = FractPixel(x,y)
+  object FractPixel{
+    implicit def pairDouble2FractPixel(pair: (Double, Double)): FractPixel = FractPixel(pair._1, pair._2)
+    implicit val factory = new CoordinateFactory[FractPixel] { def apply(x: Double, y: Double)= FractPixel(x,y) }
   }
 
+  object Rectilinear {
+    implicit def pairDouble2Rectilinear(pair: (Double, Double)): Rectilinear = Rectilinear(pair._1, pair._2)
+    implicit val factory = new CoordinateFactory[Rectilinear] { def apply(x: Double, y: Double)= Rectilinear(x,y) }
+  }
 
 }
 
