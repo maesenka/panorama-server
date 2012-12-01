@@ -62,6 +62,7 @@ class TransformTestSuite extends FunSuite {
     val s : Affine[FractPixel, Rectilinear] = Scale[FractPixel, Rectilinear](4.0d)
     val composed = s.append(tr)
     assert(Rectilinear(6, 3) === composed.forward(1d,0d))
+    assert(FractPixel(1, 0) === composed.inverse(6d,3d))
   }
 
 

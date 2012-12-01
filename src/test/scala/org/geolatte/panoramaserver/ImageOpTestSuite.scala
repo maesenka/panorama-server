@@ -32,14 +32,7 @@ class ImageOpTestSuite extends FunSuite with Instrumented {
 //    ImageIO.write(dest.asInstanceOf[BufferedImageWrapper].img, "PNG", new File("/tmp/out.png"))
 //  }
 
-  test("InverseMapper correctly calculates destination dimension") {
-    val  mapper = InverseMapper( scale(0.5), scale(2) )
-    val destDim = mapper.destinationDimension(srcRaster.dimension)
-    assert(0 === destDim.origin.x)
-    assert(0 === destDim.origin.y)
-    assert(1200 === destDim.height)
-    assert(2400 === destDim.width)
-  }
+
 
 //  test("Compare speed with native") {
 //    val trx : AffineTransform = new AffineTransform()
@@ -59,7 +52,7 @@ class ImageOpTestSuite extends FunSuite with Instrumented {
   test("Rectilinear projection test") {
     val pixelAngle = (2*Pi)/4800
     val viewingAngle = LonLat(0, 0)
-    val mapper = new RectilinearInverseMapper(viewingAngle, Pi/2)
+    val mapper = new RectilinearInverseMapper(viewingAngle, Pi/2, Dimension((0,0), 4800, 2400) )
     val (dest,destDim) = timed(mapper.inverseMap(srcRaster))
     ImageIO.write(dest.asInstanceOf[BufferedImageWrapper].img, "PNG", new File("/tmp/rectlinear-" + viewingAngle.lon + "-" + viewingAngle.lat +".png"))
   }

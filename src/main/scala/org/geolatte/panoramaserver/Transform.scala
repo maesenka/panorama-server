@@ -23,7 +23,7 @@ trait Transform[S <: Coordinate, D <: Coordinate] {
 
 }
 
-case class GeneralTransform[S <: Coordinate, D <: Coordinate](forward: S => D, inverse: D => S)
+case class GeneralTransform[S <: Coordinate, D <: Coordinate](forward: S => D, inverse: D => S) extends Transform[S,D]
 
 trait Affine[S <: Coordinate, D <: Coordinate] extends Transform[S,D]{
   val forwardMatrix : TransformMatrix[S,D]
