@@ -20,6 +20,7 @@ object TransformFactory {
   def mkEquirect2RectilinearTransform(center: LonLat, radius: Double): Transform[LonLat, Rectilinear] = {
     val sinCLat = sin(center.lat)
     val cosCLat = cos(center.lat)
+
     val forw: LonLat => Rectilinear = angle => {
       val cosC = sinCLat * sin(angle.lat) + cosCLat * cos(angle.lat) * cos(angle.lon - center.lon)
       Rectilinear(

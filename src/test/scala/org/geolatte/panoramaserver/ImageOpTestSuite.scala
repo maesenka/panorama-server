@@ -32,11 +32,11 @@ class ImageOpTestSuite extends FunSuite with Instrumented {
 //    ImageIO.write(dest.asInstanceOf[BufferedImageWrapper].img, "PNG", new File("/tmp/out.png"))
 //  }
 
-
-
 //  test("Compare speed with native") {
 //    val trx : AffineTransform = new AffineTransform()
-//    trx.setToScale(0.5, 0.5)
+//    trx.setToScale(0.5, 0
+//
+// .5)
 //    val atOp = new AffineTransformOp( trx, AffineTransformOp.TYPE_BICUBIC)
 //    val dest = timed(atOp.filter(testImage, null))
 //    ImageIO.write(dest,"PNG", new File("/tmp/scaled-atop.png"))
